@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "install": "cd server && npm install",
+    "build": "rm -rf build && mkdir build && cp -r client/* build/",
     "start": "cd server && npm start"
   }
 }
