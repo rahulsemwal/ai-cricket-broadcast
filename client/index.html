@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>AI Cricket Broadcast</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div id="app">
+    <div class="header" id="mainHeader">🏏 AI Cricket Broadcast</div>
+    <div class="commentary" id="commentary">Loading...</div>
+    <div class="grid">
+      <div class="card">
+        <h3>💡 Match Insight</h3>
+        <div id="insight">Waiting for data...</div>
+      </div>
+      <div class="card">
+        <h3>🧠 Captain's Call</h3>
+        <div id="decision">Waiting for data...</div>
+      </div>
+      <div class="card alert">
+        <h3>🚨 Actionable Alert</h3>
+        <div id="alert">All good for now.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function fetchData() {
+      const res = await fetch("http://localhost:3000/live", { method: "POST" });
+      const data = await res.json();
+
+      if (data.matchTitle) {
+        document.getElementById("mainHeader").innerText = `🏏 AI Cricket Broadcast (${data.matchTitle})`;
+      }
+
+      document.getElementById("commentary").innerText = data.commentary;
+      document.getElementById("insight").innerText = data.insight;
+      document.getElementById("decision").innerText = data.decision;
+      document.getElementById("alert").innerText = data.alert || "No Alert";
+
+      if (data.commentary) {
+        const speech = new SpeechSynthesisUtterance(data.commentary);
+        speech.lang = "en-IN";
+        window.speechSynthesis.speak(speech);
+      }
+    }
+
+    // setInterval(fetchData, 20000);
+    fetchData();
+  </script>
+</body>
+
+</html>
