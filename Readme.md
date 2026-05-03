@@ -1,4 +1,4 @@
-# 🏏 AI-Vision Cricket Broadcast/commentry Engine
+# 🏏 AI-Vision Cricket Broadcast / live commentary Engine
 
 ![Hackathon Winner](https://img.shields.io/badge/Status-Hackathon_Winner-gold?style=for-the-badge&logo=trophy) ![Gemini API](https://img.shields.io/badge/Powered_by-Gemini_2.5_Flash-blue?style=for-the-badge)
 
