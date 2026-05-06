@@ -88,9 +88,9 @@ const events = [
 ];
 
 export async function getMatchData() {
-  const useMockData = process.env.USE_MOCK_DATA === "true";
+  const useMockMatchData = process.env.USE_MOCK_MATCH_DATA === "true";
 
-  if (useMockData) {
+  if (useMockMatchData) {
     console.log(`[${new Date().toISOString()}] Tools: Mocking is ENABLED via env.`);
     return await _mockMatchdata("cricAPI");
   } else {
