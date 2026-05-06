@@ -14,11 +14,29 @@ export async function runAgent() {
     return cachedResponse;
   }
 
-  console.log(`[${new Date().toISOString()}] Agent: New match data detected. Calling Gemini API...`);
+  console.log(`[${new Date().toISOString()}] Agent: New match data detected. Checking AI toggle...`);
   lastDataString = currentDataString;
 
+  // Check if Gemini is enabled via env variable
+  const useGemini = process.env.USE_GEMINI === "true";
+
+  if (!useGemini) {
+    console.log(`[${new Date().toISOString()}] Agent: Gemini is DISABLED. Returning mock AI response.`);
+    const getShortName = (name) => (name && name.includes('[')) ? name.split('[')[1].replace(']', '') : (name || "Unknown");
+    const matchTitle = `${getShortName(data.t1)} vs ${getShortName(data.t2)}`;
+    
+    cachedResponse = {
+      commentary: "A magnificent shot! The ball races away to the boundary. The crowd is on its feet!",
+      insight: "The batting side is looking very dominant right now. Momentum is high.",
+      decision: "The captain needs to bring in a spinner to slow down the run rate.",
+      alert: generateAlert("Strategic timeout approaching!"),
+      matchTitle
+    };
+    return cachedResponse;
+  }
+
   try {
-    console.log(`[${new Date().toISOString()}] Agent: Requesting commentary...`);
+    console.log(`[${new Date().toISOString()}] Agent: Gemini is ENABLED. Requesting commentary...`);
     const commentary = await callGemini(`You are a cricket commentator. Data: ${currentDataString}. Generate 1 exciting line.`);
 
     console.log(`[${new Date().toISOString()}] Agent: Requesting momentum analysis...`);
