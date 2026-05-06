@@ -1,5 +1,20 @@
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 import { callGemini } from "./gemini.js";
 import { getMatchData, generateAlert } from "./tools.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const loadPrompt = async (filename, replacements = {}) => {
+  const filePath = path.join(__dirname, "prompts", `${filename}.txt`);
+  let content = await fs.readFile(filePath, "utf-8");
+  for (const [key, value] of Object.entries(replacements)) {
+    content = content.replace(new RegExp(`{{${key}}}`, "g"), value);
+  }
+  return content;
+};
 
 let lastDataString = "";
 let cachedResponse = null;
@@ -24,7 +39,7 @@ export async function runAgent() {
     console.log(`[${new Date().toISOString()}] Agent: Gemini is DISABLED. Returning mock AI response.`);
     const getShortName = (name) => (name && name.includes('[')) ? name.split('[')[1].replace(']', '') : (name || "Unknown");
     const matchTitle = `${getShortName(data.t1)} vs ${getShortName(data.t2)}`;
-    
+
     cachedResponse = {
       commentary: "A magnificent shot! The ball races away to the boundary. The crowd is on its feet!",
       insight: "The batting side is looking very dominant right now. Momentum is high.",
@@ -43,22 +58,19 @@ export async function runAgent() {
       console.log(`[${new Date().toISOString()}] Agent: Multi-Agent Mode ENABLED (3 calls).`);
       
       console.log(`[${new Date().toISOString()}] Agent: Requesting commentary...`);
-      commentary = await callGemini(`You are a cricket commentator. Data: ${currentDataString}. Generate 1 exciting line.`);
+      const commentaryPrompt = await loadPrompt("commentary", { data: currentDataString });
+      commentary = await callGemini(commentaryPrompt);
 
       console.log(`[${new Date().toISOString()}] Agent: Requesting momentum analysis...`);
-      momentum = await callGemini(`Analyze match: ${currentDataString}. Return momentum and pressure.`);
+      const momentumPrompt = await loadPrompt("momentum", { data: currentDataString });
+      momentum = await callGemini(momentumPrompt);
 
       console.log(`[${new Date().toISOString()}] Agent: Requesting tactical decision...`);
-      decision = await callGemini(`You are captain. Match: ${currentDataString} Momentum: ${momentum}. Suggest next move.`);
+      const decisionPrompt = await loadPrompt("decision", { data: currentDataString, momentum: momentum });
+      decision = await callGemini(decisionPrompt);
     } else {
       console.log(`[${new Date().toISOString()}] Agent: Single-Agent Mode ENABLED (1 call).`);
-      const prompt = `You are an AI Cricket Broadcast Studio. Analyze this match data: ${currentDataString}. 
-      Provide:
-      1. Exciting one-line commentary.
-      2. Momentum and pressure insight.
-      3. Captain's tactical decision.
-      
-      IMPORTANT: Return ONLY a valid JSON object with exactly these keys: "commentary", "insight", "decision".`;
+      const prompt = await loadPrompt("single_agent", { data: currentDataString });
       
       const raw = await callGemini(prompt);
       try {
