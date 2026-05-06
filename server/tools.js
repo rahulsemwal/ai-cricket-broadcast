@@ -61,12 +61,10 @@ const _parseRealMatchdata = async (source = "cricAPI", response = {}) => {
 
     // If the match is found, you can extract the scores
     if (srhVsKkrMatch) {
-      console.log("Match Status:", srhVsKkrMatch.status);
-      console.log(`${srhVsKkrMatch.t1}: ${srhVsKkrMatch.t1s || "Yet to bat"}`);
-      console.log(`${srhVsKkrMatch.t2}: ${srhVsKkrMatch.t2s || "Yet to bat"}`);
+      console.log(`[${new Date().toISOString()}] Tools: Live match found! Status: ${srhVsKkrMatch.status}`);
       return srhVsKkrMatch;
     } else {
-      console.log("Live match between SRH and KKR not found.");
+      console.log(`[${new Date().toISOString()}] Tools: SRH vs KKR live match not in API feed.`);
     }
   }
   return {};
@@ -75,8 +73,8 @@ const _parseRealMatchdata = async (source = "cricAPI", response = {}) => {
 const _getLiveMatchData = async (source = "cricAPI", url = "") => {
   if (source === "cricAPI") {
     url = `https://api.cricapi.com/v1/cricScore?apikey=${process.env.CRIC_API_KEY}`
+    console.log(`[${new Date().toISOString()}] Tools: Requesting CricAPI...`);
     const res = await axios.get(url);
-    console.log("cricAPI result", res.data);
     return await _parseRealMatchdata(source, res.data);
   }
 }
@@ -93,21 +91,20 @@ export async function getMatchData() {
   const mockEnabled = false;
 
   if (mockEnabled) {
+    console.log(`[${new Date().toISOString()}] Tools: Mocking is ENABLED.`);
     return await _mockMatchdata("cricAPI");
   } else {
     try {
       const liveMatchData = await _getLiveMatchData();
 
-      // Fallback if the live match is not found or empty
-      if (!liveMatchData) {
-        throw new Error("No live match data found");
+      if (!liveMatchData || Object.keys(liveMatchData).length === 0) {
+        throw new Error("No live match data found for SRH vs KKR");
       }
 
-      console.log("liveMatchData=====", JSON.stringify(liveMatchData, null, 2));
       return liveMatchData;
 
     } catch (error) {
-      console.log("Error fetching live data, falling back to mock data:", error.message);
+      console.warn(`[${new Date().toISOString()}] Tools WARNING: ${error.message}. Falling back to dynamic mock.`);
       return await _mockMatchdata("cricAPI");
     }
   }

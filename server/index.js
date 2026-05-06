@@ -13,26 +13,35 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Simple Request Logger Middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Serve the frontend static files
 app.use(express.static(path.join(__dirname, "../client")));
 
 app.post("/live", async (req, res) => {
+  console.log(`[${new Date().toISOString()}] Processing /live request...`);
   try {
     const result = await runAgent();
-    console.log("Result from runAgent:", result);
+    console.log(`[${new Date().toISOString()}] Successfully generated agent response.`);
     res.json(result);
   } catch (e) {
-    console.error("Error in /live endpoint:", e);
-    res.status(500).send("Error: " + e.message);
+    console.error(`[${new Date().toISOString()}] FATAL: Error in /live endpoint:`, e.stack || e);
+    res.status(500).send("Error: " + (e.message || "Unknown server error"));
   }
 });
 
 // Removed old "/" json route since it will now serve index.html
 
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-app.listen(process.env.PORT || 3000, () =>
-  console.log("Server running on port 3000")
-);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`[${new Date().toISOString()}] >>> Server is live on port ${PORT}`);
+  console.log(`[${new Date().toISOString()}] >>> Access it at: http://localhost:${PORT}`);
+});
