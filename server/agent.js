@@ -20,22 +20,25 @@ let lastDataString = "";
 let cachedResponse = null;
 
 export async function runAgent() {
+  const config = {
+    useGemini: process.env.USE_GEMINI === "true",
+    useLiveMatchData: process.env.USE_LIVE_MATCH_DATA === "true",
+    multiAgentMode: process.env.MULTI_AGENT_MODE === "true"
+  };
+
   console.log(`[${new Date().toISOString()}] Agent: Fetching match data...`);
   const data = await getMatchData();
   const currentDataString = JSON.stringify(data);
 
   if (cachedResponse && currentDataString === lastDataString) {
     console.log(`[${new Date().toISOString()}] Agent: Match data unchanged. Using cache.`);
-    return cachedResponse;
+    return { ...cachedResponse, config };
   }
 
   console.log(`[${new Date().toISOString()}] Agent: New match data detected. Checking AI toggle...`);
   lastDataString = currentDataString;
 
-  // Check if Gemini is enabled via env variable
-  const useGemini = process.env.USE_GEMINI === "true";
-
-  if (!useGemini) {
+  if (!config.useGemini) {
     console.log(`[${new Date().toISOString()}] Agent: Gemini is DISABLED. Returning mock AI response.`);
     const getShortName = (name) => (name && name.includes('[')) ? name.split('[')[1].replace(']', '') : (name || "Unknown");
     const matchTitle = `${getShortName(data.t1)} vs ${getShortName(data.t2)}`;
@@ -47,14 +50,13 @@ export async function runAgent() {
       alert: generateAlert("Strategic timeout approaching!"),
       matchTitle
     };
-    return cachedResponse;
+    return { ...cachedResponse, config };
   }
 
   try {
-    const multiAgentMode = process.env.MULTI_AGENT_MODE === "true";
     let commentary, momentum, decision;
 
-    if (multiAgentMode) {
+    if (config.multiAgentMode) {
       console.log(`[${new Date().toISOString()}] Agent: Multi-Agent Mode ENABLED (3 calls).`);
       
       console.log(`[${new Date().toISOString()}] Agent: Requesting commentary...`);
@@ -96,19 +98,20 @@ export async function runAgent() {
     const matchTitle = `${getShortName(data.t1)} vs ${getShortName(data.t2)}`;
 
     cachedResponse = { commentary, insight: momentum, decision, alert, matchTitle };
-    return cachedResponse;
+    return { ...cachedResponse, config };
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Agent ERROR:`, error.message);
     if (cachedResponse) {
       console.warn(`[${new Date().toISOString()}] Agent: Falling back to cached response.`);
-      return cachedResponse;
+      return { ...cachedResponse, config };
     } else {
       console.error(`[${new Date().toISOString()}] Agent: No cache available. Serving default emergency response.`);
       return {
         commentary: "The match is incredibly tense! Anything can happen right now.",
         insight: "Momentum is constantly shifting. Pressure is extremely high for both sides.",
         decision: "Stick to the basics. Build pressure with dot balls and wait for a mistake.",
-        alert: generateAlert("Stay focused!")
+        alert: generateAlert("Stay focused!"),
+        config
       };
     }
   }
