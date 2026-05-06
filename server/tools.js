@@ -88,13 +88,11 @@ const events = [
 ];
 
 export async function getMatchData() {
-  const useMockMatchData = process.env.USE_MOCK_MATCH_DATA === "true";
+  const useLiveMatchData = process.env.USE_LIVE_MATCH_DATA === "true";
 
-  if (useMockMatchData) {
-    console.log(`[${new Date().toISOString()}] Tools: Mocking is ENABLED via env.`);
-    return await _mockMatchdata("cricAPI");
-  } else {
+  if (useLiveMatchData) {
     try {
+      console.log(`[${new Date().toISOString()}] Tools: Live Data is ENABLED. Fetching...`);
       const liveMatchData = await _getLiveMatchData();
 
       if (!liveMatchData || Object.keys(liveMatchData).length === 0) {
@@ -107,6 +105,9 @@ export async function getMatchData() {
       console.warn(`[${new Date().toISOString()}] Tools WARNING: ${error.message}. Falling back to dynamic mock.`);
       return await _mockMatchdata("cricAPI");
     }
+  } else {
+    console.log(`[${new Date().toISOString()}] Tools: Live Data is DISABLED. Using mock.`);
+    return await _mockMatchdata("cricAPI");
   }
 }
 
