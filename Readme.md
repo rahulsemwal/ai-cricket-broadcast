@@ -66,7 +66,7 @@ PORT=3000
 ```bash
 cd server
 npm install
-node index.js
+npm start
 ```
 
 ### 4. Open the Web App

@@ -13,6 +13,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const CONFIG = {
+  USE_GEMINI: process.env.USE_GEMINI === "true",
+  USE_LIVE_MATCH_DATA: process.env.USE_LIVE_MATCH_DATA === "true",
+  MULTI_AGENT_MODE: process.env.MULTI_AGENT_MODE === "true"
+}
+
 // Simple Request Logger Middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -27,17 +33,13 @@ app.post("/live", async (req, res) => {
   try {
     const result = await runAgent();
     console.log(`[${new Date().toISOString()}] Successfully generated agent response.`);
-    
+
     // Append current backend configuration for transparency
     const responseWithConfig = {
       ...result,
-      CONFIG: {
-        USE_GEMINI: process.env.USE_GEMINI === "true",
-        USE_LIVE_MATCH_DATA: process.env.USE_LIVE_MATCH_DATA === "true",
-        MULTI_AGENT_MODE: process.env.MULTI_AGENT_MODE === "true"
-      }
+      CONFIG
     };
-    
+    console.log(`[${new Date().toISOString()}] SUCCESS: Response in /Live endpoint: ` + JSON.stringify(responseWithConfig));
     res.json(responseWithConfig);
   } catch (e) {
     console.error(`[${new Date().toISOString()}] FATAL: Error in /live endpoint:`, e.stack || e);
