@@ -27,7 +27,18 @@ app.post("/live", async (req, res) => {
   try {
     const result = await runAgent();
     console.log(`[${new Date().toISOString()}] Successfully generated agent response.`);
-    res.json(result);
+    
+    // Append current backend configuration for transparency
+    const responseWithConfig = {
+      ...result,
+      CONFIG: {
+        USE_GEMINI: process.env.USE_GEMINI === "true",
+        USE_LIVE_MATCH_DATA: process.env.USE_LIVE_MATCH_DATA === "true",
+        MULTI_AGENT_MODE: process.env.MULTI_AGENT_MODE === "true"
+      }
+    };
+    
+    res.json(responseWithConfig);
   } catch (e) {
     console.error(`[${new Date().toISOString()}] FATAL: Error in /live endpoint:`, e.stack || e);
     res.status(500).send("Error: " + (e.message || "Unknown server error"));
