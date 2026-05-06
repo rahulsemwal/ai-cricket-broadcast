@@ -36,14 +36,43 @@ export async function runAgent() {
   }
 
   try {
-    console.log(`[${new Date().toISOString()}] Agent: Gemini is ENABLED. Requesting commentary...`);
-    const commentary = await callGemini(`You are a cricket commentator. Data: ${currentDataString}. Generate 1 exciting line.`);
+    const multiAgentMode = process.env.MULTI_AGENT_MODE === "true";
+    let commentary, momentum, decision;
 
-    console.log(`[${new Date().toISOString()}] Agent: Requesting momentum analysis...`);
-    const momentum = await callGemini(`Analyze match: ${currentDataString}. Return momentum and pressure.`);
+    if (multiAgentMode) {
+      console.log(`[${new Date().toISOString()}] Agent: Multi-Agent Mode ENABLED (3 calls).`);
+      
+      console.log(`[${new Date().toISOString()}] Agent: Requesting commentary...`);
+      commentary = await callGemini(`You are a cricket commentator. Data: ${currentDataString}. Generate 1 exciting line.`);
 
-    console.log(`[${new Date().toISOString()}] Agent: Requesting tactical decision...`);
-    const decision = await callGemini(`You are captain. Match: ${currentDataString} Momentum: ${momentum}. Suggest next move.`);
+      console.log(`[${new Date().toISOString()}] Agent: Requesting momentum analysis...`);
+      momentum = await callGemini(`Analyze match: ${currentDataString}. Return momentum and pressure.`);
+
+      console.log(`[${new Date().toISOString()}] Agent: Requesting tactical decision...`);
+      decision = await callGemini(`You are captain. Match: ${currentDataString} Momentum: ${momentum}. Suggest next move.`);
+    } else {
+      console.log(`[${new Date().toISOString()}] Agent: Single-Agent Mode ENABLED (1 call).`);
+      const prompt = `You are an AI Cricket Broadcast Studio. Analyze this match data: ${currentDataString}. 
+      Provide:
+      1. Exciting one-line commentary.
+      2. Momentum and pressure insight.
+      3. Captain's tactical decision.
+      
+      IMPORTANT: Return ONLY a valid JSON object with exactly these keys: "commentary", "insight", "decision".`;
+      
+      const raw = await callGemini(prompt);
+      try {
+        const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+        commentary = parsed.commentary;
+        momentum = parsed.insight;
+        decision = parsed.decision;
+      } catch (e) {
+        console.error("Failed to parse single-agent JSON. Using raw text.");
+        commentary = raw;
+        momentum = "Analysis unavailable in single-agent mode.";
+        decision = "Strategic decision pending.";
+      }
+    }
 
     let alert = "";
     if (decision.toLowerCase().includes("change") || momentum.toLowerCase().includes("high")) {
