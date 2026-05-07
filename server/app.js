@@ -36,7 +36,7 @@ app.use(express.static(path.join(__dirname, "../client")));
  * workflow and returns the latest match commentary and analysis.
  */
 app.post("/live", async (req, res) => {
-  console.log(`[${new Date().toISOString()}] Processing /live request...`);
+  console.log(`\n\[${new Date().toISOString()}] Processing /live request...`);
   try {
     const result = await runAgent();
     console.log(`[${new Date().toISOString()}] Successfully generated agent response.`);
@@ -46,10 +46,10 @@ app.post("/live", async (req, res) => {
       ...result,
       CONFIG
     };
-    console.log(`[${new Date().toISOString()}] SUCCESS: Response in /Live endpoint: ` + JSON.stringify(responseWithConfig));
+    console.log(`\n\[${new Date().toISOString()}] SUCCESS: Response in /Live endpoint:` + JSON.stringify(responseWithConfig));
     res.json(responseWithConfig);
   } catch (e) {
-    console.error(`[${new Date().toISOString()}] FATAL: Error in /live endpoint:`, e.stack || e);
+    console.error(`\n\[${new Date().toISOString()}] FATAL: Error in /live endpoint:`, e.stack || e);
     res.status(500).send("Error: " + (e.message || "Unknown server error"));
   }
 });

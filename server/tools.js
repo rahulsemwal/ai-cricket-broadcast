@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CRIC_API_BASE_URL, DEFAULT_CRICKET_API_SOURCE, CRICKET_API_SOURCES } from "./constants.js";
+import { CRIC_API_BASE_URL, CRICKET_API_SOURCES, DEFAULT_CRICKET_API_SOURCE } from "./constants.js";
 
 let ballIndex = 0;
 
@@ -9,7 +9,7 @@ let ballIndex = 0;
  * @param {string} source - The data format to simulate ('cricAPI' or 'mock').
  * @returns {Promise<Object>} Simulated match data object.
  */
-const _mockMatchdata = async (source = "mock") => {
+const _mockMatchdata = async (source = DEFAULT_CRICKET_API_SOURCE) => {
   if (source === CRICKET_API_SOURCES.CRIC_API) {
     const e = events[ballIndex % events.length];
 
@@ -51,34 +51,31 @@ const _mockMatchdata = async (source = "mock") => {
 }
 
 /**
- * Parses raw API response data to find the specific live match (SRH vs KKR).
+ * Parses raw API response data to find the best available match.
+ * Priority: 1. Any LIVE match | 2. Any COMPLETED match (result)
  * @param {string} source - The API source name.
  * @param {Object} response - The raw data from the API.
- * @returns {Promise<Object>} The specific match object if found, otherwise an empty object.
+ * @returns {Promise<Object>} The best available match object, or empty object if none found.
  */
-const _parseRealMatchdata = async (source = CRICKET_API_SOURCES.CRIC_API, response = {}) => {
+const _parseRealMatchdata = async (source = DEFAULT_CRICKET_API_SOURCE, response = {}) => {
   if (source === CRICKET_API_SOURCES.CRIC_API) {
-    const apiResponse = response;
+    const matches = response.data || [];
 
-    // Find the live match between KKR and SRH
-    const srhVsKkrMatch = apiResponse.data.find(match => {
-      // Check if it's a live match
-      const isLive = match.ms === "live";
-
-      // Check if both teams (t1 and t2) contain KKR and SRH
-      const hasKKR = match.t1.includes("[KKR]") || match.t2.includes("[KKR]");
-      const hasSRH = match.t1.includes("[SRH]") || match.t2.includes("[SRH]");
-
-      return isLive && hasKKR && hasSRH;
-    });
-
-    // If the match is found, you can extract the scores
-    if (srhVsKkrMatch) {
-      console.log(`[${new Date().toISOString()}] Tools: Live match found! Status: ${srhVsKkrMatch.status}`);
-      return srhVsKkrMatch;
-    } else {
-      console.log(`[${new Date().toISOString()}] Tools: SRH vs KKR live match not in API feed.`);
+    // 1. Try to find the FIRST match that is currently LIVE
+    const liveMatch = matches.find(match => match.ms === "live");
+    if (liveMatch) {
+      console.log(`[${new Date().toISOString()}] Tools: Found a LIVE match! (${liveMatch.t1} vs ${liveMatch.t2})`);
+      return liveMatch;
     }
+
+    // 2. If no live match, try to find the FIRST match that has a RESULT (contains scores)
+    const resultMatch = matches.find(match => match.ms === "result");
+    if (resultMatch) {
+      console.log(`[${new Date().toISOString()}] Tools: No live matches. Found a COMPLETED match. (${resultMatch.t1} vs ${resultMatch.t2})`);
+      return resultMatch;
+    }
+
+    console.log(`[${new Date().toISOString()}] Tools: No Live or Completed matches found in API feed.`);
   }
   return {};
 }
@@ -89,12 +86,15 @@ const _parseRealMatchdata = async (source = CRICKET_API_SOURCES.CRIC_API, respon
  * @param {string} url - Optional override URL.
  * @returns {Promise<Object>} The parsed match data.
  */
-const _getLiveMatchData = async (source = CRICKET_API_SOURCES.CRIC_API, url = "") => {
+const _getLiveMatchData = async (source = DEFAULT_CRICKET_API_SOURCE, url = "") => {
   if (source === CRICKET_API_SOURCES.CRIC_API) {
     const apiURL = url || `${CRIC_API_BASE_URL}?apikey=${process.env.CRIC_API_KEY}`;
-    console.log(`[${new Date().toISOString()}] Tools: Requesting CricAPI...`);
+    console.log(`\n\[${new Date().toISOString()}] Tools: Requesting CricAPI...`);
     const res = await axios.get(apiURL);
-    return await _parseRealMatchdata(source, res.data);
+    console.log(`\n\[${new Date().toISOString()}] Tools: Raw CricAPI response: ${JSON.stringify(res.data)}`);
+    const parsedData = await _parseRealMatchdata(source, res.data);
+    console.log(`\n\[${new Date().toISOString()}] Tools: Parsed Live match data: ${JSON.stringify(parsedData)}`);
+    return parsedData;
   }
 }
 
@@ -116,9 +116,8 @@ export async function getMatchData() {
   const source = DEFAULT_CRICKET_API_SOURCE;
   if (useLiveMatchData) {
     try {
-      console.log(`[${new Date().toISOString()}] Tools: Live Data is ENABLED. Fetching...`);
+      console.log(`\n\[${new Date().toISOString()}] Tools: Live Data is ENABLED. Fetching...`);
       const liveMatchData = await _getLiveMatchData(source);
-
       // Ensure data was received and is not empty
       if (!liveMatchData || Object.keys(liveMatchData).length === 0) {
         throw new Error("Received empty or invalid match data");
