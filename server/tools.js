@@ -1,4 +1,5 @@
 import axios from "axios";
+import { CRIC_API_BASE_URL } from "./constants.js";
 
 let ballIndex = 0;
 
@@ -90,9 +91,9 @@ const _parseRealMatchdata = async (source = "cricAPI", response = {}) => {
  */
 const _getLiveMatchData = async (source = "cricAPI", url = "") => {
   if (source === "cricAPI") {
-    url = `https://api.cricapi.com/v1/cricScore?apikey=${process.env.CRIC_API_KEY}`
+    const apiURL = url || `${CRIC_API_BASE_URL}?apikey=${process.env.CRIC_API_KEY}`;
     console.log(`[${new Date().toISOString()}] Tools: Requesting CricAPI...`);
-    const res = await axios.get(url);
+    const res = await axios.get(apiURL);
     return await _parseRealMatchdata(source, res.data);
   }
 }
@@ -118,8 +119,9 @@ export async function getMatchData() {
       console.log(`[${new Date().toISOString()}] Tools: Live Data is ENABLED. Fetching...`);
       const liveMatchData = await _getLiveMatchData();
 
+      // Ensure data was received and is not empty
       if (!liveMatchData || Object.keys(liveMatchData).length === 0) {
-        throw new Error("No live match data found for SRH vs KKR");
+        throw new Error("Received empty or invalid match data");
       }
 
       return liveMatchData;
@@ -127,6 +129,8 @@ export async function getMatchData() {
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] Tools WARNING: ${error.message}. Falling back to dynamic mock.`);
       return await _mockMatchdata("cricAPI");
+    } finally {
+      console.log(`[${new Date().toISOString()}] Tools: getMatchData operation completed.`);
     }
   } else {
     console.log(`[${new Date().toISOString()}] Tools: Live Data is DISABLED. Using mock.`);
