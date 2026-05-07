@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CRIC_API_BASE_URL } from "./constants.js";
+import { CRIC_API_BASE_URL, DEFAULT_CRICKET_API_SOURCE, CRICKET_API_SOURCES } from "./constants.js";
 
 let ballIndex = 0;
 
@@ -10,7 +10,7 @@ let ballIndex = 0;
  * @returns {Promise<Object>} Simulated match data object.
  */
 const _mockMatchdata = async (source = "mock") => {
-  if (source === "cricAPI") {
+  if (source === CRICKET_API_SOURCES.CRIC_API) {
     const e = events[ballIndex % events.length];
 
     // Simulate runs, wickets, and overs progressing
@@ -56,8 +56,8 @@ const _mockMatchdata = async (source = "mock") => {
  * @param {Object} response - The raw data from the API.
  * @returns {Promise<Object>} The specific match object if found, otherwise an empty object.
  */
-const _parseRealMatchdata = async (source = "cricAPI", response = {}) => {
-  if (source === "cricAPI") {
+const _parseRealMatchdata = async (source = CRICKET_API_SOURCES.CRIC_API, response = {}) => {
+  if (source === CRICKET_API_SOURCES.CRIC_API) {
     const apiResponse = response;
 
     // Find the live match between KKR and SRH
@@ -89,8 +89,8 @@ const _parseRealMatchdata = async (source = "cricAPI", response = {}) => {
  * @param {string} url - Optional override URL.
  * @returns {Promise<Object>} The parsed match data.
  */
-const _getLiveMatchData = async (source = "cricAPI", url = "") => {
-  if (source === "cricAPI") {
+const _getLiveMatchData = async (source = CRICKET_API_SOURCES.CRIC_API, url = "") => {
+  if (source === CRICKET_API_SOURCES.CRIC_API) {
     const apiURL = url || `${CRIC_API_BASE_URL}?apikey=${process.env.CRIC_API_KEY}`;
     console.log(`[${new Date().toISOString()}] Tools: Requesting CricAPI...`);
     const res = await axios.get(apiURL);
@@ -113,11 +113,11 @@ const events = [
  */
 export async function getMatchData() {
   const useLiveMatchData = process.env.USE_LIVE_MATCH_DATA === "true";
-
+  const source = DEFAULT_CRICKET_API_SOURCE;
   if (useLiveMatchData) {
     try {
       console.log(`[${new Date().toISOString()}] Tools: Live Data is ENABLED. Fetching...`);
-      const liveMatchData = await _getLiveMatchData();
+      const liveMatchData = await _getLiveMatchData(source);
 
       // Ensure data was received and is not empty
       if (!liveMatchData || Object.keys(liveMatchData).length === 0) {
@@ -128,13 +128,13 @@ export async function getMatchData() {
 
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] Tools WARNING: ${error.message}. Falling back to dynamic mock.`);
-      return await _mockMatchdata("cricAPI");
+      return await _mockMatchdata(source);
     } finally {
       console.log(`[${new Date().toISOString()}] Tools: getMatchData operation completed.`);
     }
   } else {
     console.log(`[${new Date().toISOString()}] Tools: Live Data is DISABLED. Using mock.`);
-    return await _mockMatchdata("cricAPI");
+    return await _mockMatchdata(source);
   }
 }
 
