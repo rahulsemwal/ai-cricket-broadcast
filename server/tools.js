@@ -145,3 +145,12 @@ export async function getMatchData() {
 export function generateAlert(msg) {
   return `🚨 ${msg}`;
 }
+
+/**
+ * Extracts the short team name from a string (e.g., "Kolkata Knight Riders [KKR]" -> "KKR").
+ * @param {string} name - The full team name.
+ * @returns {string} The short team name or "Unknown".
+ */
+export function getShortName(name) {
+  return (name && name.includes('[')) ? name.split('[')[1].replace(']', '') : (name || "Unknown");
+}
