@@ -7,6 +7,12 @@ import { getMatchData, generateAlert } from "./tools.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Dynamically loads a prompt template from a text file and replaces placeholders.
+ * @param {string} filename - The name of the prompt file (without extension).
+ * @param {Object} replacements - A map of placeholder keys and their replacement values.
+ * @returns {Promise<string>} The processed prompt string.
+ */
 const loadPrompt = async (filename, replacements = {}) => {
   const filePath = path.join(__dirname, "prompts", `${filename}.txt`);
   let content = await fs.readFile(filePath, "utf-8");
@@ -19,6 +25,11 @@ const loadPrompt = async (filename, replacements = {}) => {
 let lastDataString = "";
 let cachedResponse = null;
 
+/**
+ * Orchestrates the AI broadcasting workflow. Fetches data, determines if AI calls are needed,
+ * manages caching, and coordinates between Multi-Agent and Single-Agent modes.
+ * @returns {Promise<Object>} The final broadcast response (commentary, insights, etc.).
+ */
 export async function runAgent() {
   console.log(`[${new Date().toISOString()}] Agent: Fetching match data...`);
   const data = await getMatchData();

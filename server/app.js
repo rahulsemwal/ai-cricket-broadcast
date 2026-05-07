@@ -19,7 +19,9 @@ const CONFIG = {
   MULTI_AGENT_MODE: process.env.MULTI_AGENT_MODE === "true"
 }
 
-// Simple Request Logger Middleware
+/**
+ * Express Middleware: Logs all incoming requests with method, URL, and timestamp.
+ */
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
@@ -28,6 +30,11 @@ app.use((req, res, next) => {
 // Serve the frontend static files
 app.use(express.static(path.join(__dirname, "../client")));
 
+/**
+ * POST /live
+ * Primary endpoint for the broadcasting engine. Triggers the AI agent 
+ * workflow and returns the latest match commentary and analysis.
+ */
 app.post("/live", async (req, res) => {
   console.log(`[${new Date().toISOString()}] Processing /live request...`);
   try {
@@ -49,6 +56,10 @@ app.post("/live", async (req, res) => {
 
 // Removed old "/" json route since it will now serve index.html
 
+/**
+ * GET /health
+ * Simple health check endpoint to verify server status.
+ */
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });

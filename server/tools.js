@@ -2,6 +2,12 @@ import axios from "axios";
 
 let ballIndex = 0;
 
+/**
+ * Generates simulated match data when real API data is unavailable or disabled.
+ * Progresses the game state (score, overs, wickets) based on a global ball index.
+ * @param {string} source - The data format to simulate ('cricAPI' or 'mock').
+ * @returns {Promise<Object>} Simulated match data object.
+ */
 const _mockMatchdata = async (source = "mock") => {
   if (source === "cricAPI") {
     const e = events[ballIndex % events.length];
@@ -43,6 +49,12 @@ const _mockMatchdata = async (source = "mock") => {
   };
 }
 
+/**
+ * Parses raw API response data to find the specific live match (SRH vs KKR).
+ * @param {string} source - The API source name.
+ * @param {Object} response - The raw data from the API.
+ * @returns {Promise<Object>} The specific match object if found, otherwise an empty object.
+ */
 const _parseRealMatchdata = async (source = "cricAPI", response = {}) => {
   if (source === "cricAPI") {
     const apiResponse = response;
@@ -70,6 +82,12 @@ const _parseRealMatchdata = async (source = "cricAPI", response = {}) => {
   return {};
 }
 
+/**
+ * Performs the HTTP request to the cricket API to fetch live scores.
+ * @param {string} source - The API source name.
+ * @param {string} url - Optional override URL.
+ * @returns {Promise<Object>} The parsed match data.
+ */
 const _getLiveMatchData = async (source = "cricAPI", url = "") => {
   if (source === "cricAPI") {
     url = `https://api.cricapi.com/v1/cricScore?apikey=${process.env.CRIC_API_KEY}`
@@ -87,6 +105,11 @@ const events = [
   { event: "wicket" }
 ];
 
+/**
+ * Main entry point for match data. Orchestrates between live API fetching 
+ * and fallback mock simulation based on environment configuration.
+ * @returns {Promise<Object>} Current match state.
+ */
 export async function getMatchData() {
   const useLiveMatchData = process.env.USE_LIVE_MATCH_DATA === "true";
 
@@ -111,6 +134,11 @@ export async function getMatchData() {
   }
 }
 
+/**
+ * Formats a message string into a standardized UI alert with icons.
+ * @param {string} msg - The message to format.
+ * @returns {string} The formatted alert string.
+ */
 export function generateAlert(msg) {
   return `🚨 ${msg}`;
 }
