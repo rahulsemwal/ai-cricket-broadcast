@@ -154,3 +154,30 @@ export function generateAlert(msg) {
 export function getShortName(name) {
   return (name && name.includes('[')) ? name.split('[')[1].replace(']', '') : (name || "Unknown");
 }
+
+/**
+ * Formats a professional match title with batting/bowling icons.
+ * @param {Object} data - The raw match data.
+ * @returns {string} A formatted title like "KKR 🏏 (169/3) vs SRH ⚾ (165/10)"
+ */
+export function formatMatchTitle(data) {
+  const t1Name = getShortName(data.t1);
+  const t2Name = getShortName(data.t2);
+  const t1Score = data.t1s || "0/0";
+  const t2Score = data.t2s || "0/0";
+
+  // Simple logic: The team with an active over count (containing '.') is batting.
+  // If it's the start of the match, the team with a score while the other is empty is batting.
+  const t2IsBatting = t2Score.includes('.') || (t2Score !== "0/0" && t1Score.includes('/'));
+  const t1IsBatting = !t2IsBatting && (t1Score.includes('.') || t1Score !== "0/0");
+
+  const t1Icon = t1IsBatting ? "🏏" : "⚾";
+  const t2Icon = t2IsBatting ? "🏏" : "⚾";
+
+  // If match status contains "won", it's over - show no active icons or just both teams
+  if (data.status && data.status.toLowerCase().includes("won")) {
+     return `${t1Name} (${t1Score}) vs ${t2Name} (${t2Score})`;
+  }
+
+  return `${t1Name} ${t1Icon} (${t1Score}) vs ${t2Name} ${t2Icon} (${t2Score})`;
+}

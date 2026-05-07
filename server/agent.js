@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { callGemini } from "./gemini.js";
-import { getMatchData, generateAlert, getShortName } from "./tools.js";
+import { getMatchData, generateAlert, getShortName, formatMatchTitle } from "./tools.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,7 +48,7 @@ export async function runAgent() {
 
   if (!useGemini) {
     console.log(`[${new Date().toISOString()}] Agent: Gemini is DISABLED. Returning mock AI response.`);
-    const matchTitle = `${getShortName(data.t1)} (${data.t1s || "0/0"}) vs ${getShortName(data.t2)} (${data.t2s || "0/0"})`;
+    const matchTitle = formatMatchTitle(data);
 
     cachedResponse = {
       commentary: "A magnificent shot! The ball races away to the boundary. The crowd is on its feet!",
@@ -102,7 +102,7 @@ export async function runAgent() {
       alert = generateAlert("Momentum shifting! Change strategy!");
     }
 
-    const matchTitle = `${getShortName(data.t1)} (${data.t1s || "0/0"}) vs ${getShortName(data.t2)} (${data.t2s || "0/0"})`;
+    const matchTitle = formatMatchTitle(data);
 
     cachedResponse = { commentary, insight: momentum, decision, alert, matchTitle };
     return cachedResponse;
