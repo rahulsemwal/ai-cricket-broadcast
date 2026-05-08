@@ -1,9 +1,16 @@
 import axios from "axios";
+import { CRIC_API_BASE_URL, CRICKET_API_SOURCES, DEFAULT_CRICKET_API_SOURCE } from "./constants.js";
 
 let ballIndex = 0;
 
-const _mockMatchdata = async (source = "mock") => {
-  if (source === "cricAPI") {
+/**
+ * Generates simulated match data when real API data is unavailable or disabled.
+ * Progresses the game state (score, overs, wickets) based on a global ball index.
+ * @param {string} source - The data format to simulate ('cricAPI' or 'mock').
+ * @returns {Promise<Object>} Simulated match data object.
+ */
+const _mockMatchdata = async (source = DEFAULT_CRICKET_API_SOURCE) => {
+  if (source === CRICKET_API_SOURCES.CRIC_API) {
     const e = events[ballIndex % events.length];
 
     // Simulate runs, wickets, and overs progressing
@@ -43,41 +50,51 @@ const _mockMatchdata = async (source = "mock") => {
   };
 }
 
-const _parseRealMatchdata = async (source = "cricAPI", response = {}) => {
-  if (source === "cricAPI") {
-    const apiResponse = response;
+/**
+ * Parses raw API response data to find the best available match.
+ * Priority: 1. Any LIVE match | 2. Any COMPLETED match (result)
+ * @param {Object} response - The raw data from the API.
+ * @param {string} source - The API source name.
+ * @returns {Promise<Object>} The best available match object, or empty object if none found.
+ */
+const _parseRealMatchdata = async (response = {}, source = DEFAULT_CRICKET_API_SOURCE) => {
+  if (source === CRICKET_API_SOURCES.CRIC_API) {
+    const matches = response.data || [];
 
-    // Find the live match between KKR and SRH
-    const srhVsKkrMatch = apiResponse.data.find(match => {
-      // Check if it's a live match
-      const isLive = match.ms === "live";
-
-      // Check if both teams (t1 and t2) contain KKR and SRH
-      const hasKKR = match.t1.includes("[KKR]") || match.t2.includes("[KKR]");
-      const hasSRH = match.t1.includes("[SRH]") || match.t2.includes("[SRH]");
-
-      return isLive && hasKKR && hasSRH;
-    });
-
-    // If the match is found, you can extract the scores
-    if (srhVsKkrMatch) {
-      console.log("Match Status:", srhVsKkrMatch.status);
-      console.log(`${srhVsKkrMatch.t1}: ${srhVsKkrMatch.t1s || "Yet to bat"}`);
-      console.log(`${srhVsKkrMatch.t2}: ${srhVsKkrMatch.t2s || "Yet to bat"}`);
-      return srhVsKkrMatch;
-    } else {
-      console.log("Live match between SRH and KKR not found.");
+    // 1. Try to find the FIRST match that is currently LIVE
+    const liveMatch = matches.find(match => match.ms === "live");
+    if (liveMatch) {
+      console.log(`[${new Date().toISOString()}] Tools: Found a LIVE match! (${liveMatch.t1} vs ${liveMatch.t2})`);
+      return liveMatch;
     }
+
+    // 2. If no live match, try to find the FIRST match that has a RESULT (contains scores)
+    const resultMatch = matches.find(match => match.ms === "result");
+    if (resultMatch) {
+      console.log(`[${new Date().toISOString()}] Tools: No live matches. Found a COMPLETED match. (${resultMatch.t1} vs ${resultMatch.t2})`);
+      return resultMatch;
+    }
+
+    console.log(`[${new Date().toISOString()}] Tools: No Live or Completed matches found in API feed.`);
   }
   return {};
 }
 
-const _getLiveMatchData = async (source = "cricAPI", url = "") => {
-  if (source === "cricAPI") {
-    url = `https://api.cricapi.com/v1/cricScore?apikey=${process.env.CRIC_API_KEY}`
-    const res = await axios.get(url);
-    console.log("cricAPI result", res.data);
-    return await _parseRealMatchdata(source, res.data);
+/**
+ * Performs the HTTP request to the cricket API to fetch live scores.
+ * @param {string} url - Optional override URL.
+ * @param {string} source - The API source name.
+ * @returns {Promise<Object>} The parsed match data.
+ */
+const _getLiveMatchData = async (source = DEFAULT_CRICKET_API_SOURCE) => {
+  if (source === CRICKET_API_SOURCES.CRIC_API) {
+    const apiURL = `${CRIC_API_BASE_URL}?apikey=${process.env.CRIC_API_KEY}`;
+    console.log(`\n\[${new Date().toISOString()}] Tools: Requesting CricAPI...`);
+    const res = await axios.get(apiURL);
+    console.log(`\n\[${new Date().toISOString()}] Tools: Raw CricAPI response: ${JSON.stringify(res.data)}`);
+    const parsedData = await _parseRealMatchdata(res.data, source);
+    console.log(`\n\[${new Date().toISOString()}] Tools: Parsed Live match data: ${JSON.stringify(parsedData)}`);
+    return parsedData;
   }
 }
 
@@ -89,30 +106,110 @@ const events = [
   { event: "wicket" }
 ];
 
+/**
+ * Main entry point for match data. Orchestrates between live API fetching 
+ * and fallback mock simulation based on environment configuration.
+ * @returns {Promise<Object>} Current match state.
+ */
 export async function getMatchData() {
-  const mockEnabled = false;
-
-  if (mockEnabled) {
-    return await _mockMatchdata("cricAPI");
-  } else {
+  const useLiveMatchData = process.env.USE_LIVE_MATCH_DATA === "true";
+  const source = DEFAULT_CRICKET_API_SOURCE;
+  if (useLiveMatchData) {
     try {
-      const liveMatchData = await _getLiveMatchData();
-
-      // Fallback if the live match is not found or empty
-      if (!liveMatchData) {
-        throw new Error("No live match data found");
+      console.log(`\n\[${new Date().toISOString()}] Tools: Live Data is ENABLED. Fetching...`);
+      const liveMatchData = await _getLiveMatchData(source);
+      // Ensure data was received and is not empty
+      if (!liveMatchData || Object.keys(liveMatchData).length === 0) {
+        throw new Error("Received empty or invalid match data");
       }
 
-      console.log("liveMatchData=====", JSON.stringify(liveMatchData, null, 2));
       return liveMatchData;
 
     } catch (error) {
-      console.log("Error fetching live data, falling back to mock data:", error.message);
-      return await _mockMatchdata("cricAPI");
+      console.warn(`[${new Date().toISOString()}] Tools WARNING: ${error.message}. Falling back to dynamic mock.`);
+      return await _mockMatchdata(source);
+    } finally {
+      console.log(`[${new Date().toISOString()}] Tools: getMatchData operation completed.`);
     }
+  } else {
+    console.log(`[${new Date().toISOString()}] Tools: Live Data is DISABLED. Using mock.`);
+    return await _mockMatchdata(source);
   }
 }
 
+/**
+ * Formats a message string into a standardized UI alert with icons.
+ * @param {string} msg - The message to format.
+ * @returns {string} The formatted alert string.
+ */
 export function generateAlert(msg) {
   return `🚨 ${msg}`;
+}
+
+/**
+ * Extracts the short team name from a string (e.g., "Kolkata Knight Riders [KKR]" -> "KKR").
+ * @param {string} name - The full team name.
+ * @returns {string} The short team name or "Unknown".
+ */
+export function getShortName(name) {
+  return (name && name.includes('[')) ? name.split('[')[1].replace(']', '') : (name || "Unknown");
+}
+
+/**
+ * Formats a professional match title with batting/bowling icons.
+ * @param {Object} data - The raw match data.
+ * @returns {string} A formatted title like "KKR 🏏 (169/3) vs SRH ⚾ (165/10)"
+ */
+export function formatMatchTitle(data, source = DEFAULT_CRICKET_API_SOURCE) {
+  if (source === CRICKET_API_SOURCES.CRIC_API) {
+    const t1Name = data.t1 || "Unknown";
+    const t2Name = data.t2 || "Unknown";
+    const t1Score = data.t1s || "0/0";
+    const t2Score = data.t2s || "0/0";
+    const status = (data.status || "").toLowerCase();
+    const shortT1 = getShortName(t1Name).toLowerCase();
+    const shortT2 = getShortName(t2Name).toLowerCase();
+
+    // Smart Batting Detection
+    let t1IsBatting = false;
+    let t2IsBatting = false;
+
+    if (status.includes(shortT1) && status.includes("need")) {
+      t1IsBatting = true;
+    } else if (status.includes(shortT2) && status.includes("need")) {
+      t2IsBatting = true;
+    } else {
+      const t1AllOut = t1Score.includes("/10");
+      const t2AllOut = t2Score.includes("/10");
+      if (t2Score !== "0/0" && !t2AllOut && t2Score.includes("(")) {
+        t2IsBatting = true;
+      } else if (t1Score !== "0/0" && !t1AllOut) {
+        t1IsBatting = true;
+      }
+    }
+
+    // Smart Icon Assignment: Only show icons if someone is actually batting
+    let t1Icon = "";
+    let t2Icon = "";
+
+    if (t1IsBatting) {
+      t1Icon = "🏏 ";
+      t2Icon = "⚾ ";
+    } else if (t2IsBatting) {
+      t2Icon = "🏏 ";
+      t1Icon = "⚾ ";
+    }
+
+    // Format scores to be cleaner (remove extra parentheses if they exist)
+    const cleanScore1 = t1Score.replace(/\((.*?)\)/, '$1').trim();
+    const cleanScore2 = t2Score.replace(/\((.*?)\)/, '$1').trim();
+
+    // End of match check
+    if (status.includes("won") || status.includes("drawn") || status.includes("result")) {
+      return `${t1Name} (${cleanScore1}) vs ${t2Name} (${cleanScore2})`;
+    }
+
+    // Smart UX: "Full Name [SHORT] Icon (Score)"
+    return `${t1Name} ${t1Icon} (${cleanScore1}) vs ${t2Name} ${t2Icon} (${cleanScore2})`;
+  }
 }

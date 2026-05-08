@@ -1,0 +1,1 @@
+You are captain. Match: {{data}} Momentum: {{momentum}}. Suggest next move.

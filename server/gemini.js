@@ -7,6 +7,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
+/**
+ * Sends a prompt to the Google Gemini 2.5 Flash API and returns the generated text response.
+ * @param {string} prompt - The text prompt to send to the AI.
+ * @returns {Promise<string>} The AI-generated response text.
+ */
 export async function callGemini(prompt) {
   try {
     const res = await axios.post(
