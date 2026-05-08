@@ -162,33 +162,28 @@ export function getShortName(name) {
  */
 export function formatMatchTitle(data, source = DEFAULT_CRICKET_API_SOURCE) {
   if (source === CRICKET_API_SOURCES.CRIC_API) {
-    const t1Name = getShortName(data.t1);
-    const t2Name = getShortName(data.t2);
+    const t1Name = data.t1 || "Unknown";
+    const t2Name = data.t2 || "Unknown";
     const t1Score = data.t1s || "0/0";
     const t2Score = data.t2s || "0/0";
     const status = (data.status || "").toLowerCase();
+    const shortT1 = getShortName(t1Name).toLowerCase();
+    const shortT2 = getShortName(t2Name).toLowerCase();
 
     // Smart Batting Detection
     let t1IsBatting = false;
     let t2IsBatting = false;
 
-    // 1. Check if status explicitly mentions a team "needs" runs (Chasing)
-    if (status.includes(t1Name.toLowerCase()) && status.includes("need")) {
+    if (status.includes(shortT1) && status.includes("need")) {
       t1IsBatting = true;
-    } else if (status.includes(t2Name.toLowerCase()) && status.includes("need")) {
+    } else if (status.includes(shortT2) && status.includes("need")) {
       t2IsBatting = true;
-    } 
-    // 2. Fallback: Check who is NOT all out and has an active over count
-    else {
+    } else {
       const t1AllOut = t1Score.includes("/10");
       const t2AllOut = t2Score.includes("/10");
-      
-      // If t2 has started batting and isn't all out, they are likely batting (2nd innings)
       if (t2Score !== "0/0" && !t2AllOut && t2Score.includes("(")) {
         t2IsBatting = true;
-      } 
-      // Otherwise, if t1 has a score and isn't all out, they are batting (1st innings)
-      else if (t1Score !== "0/0" && !t1AllOut) {
+      } else if (t1Score !== "0/0" && !t1AllOut) {
         t1IsBatting = true;
       }
     }
@@ -196,11 +191,16 @@ export function formatMatchTitle(data, source = DEFAULT_CRICKET_API_SOURCE) {
     const t1Icon = t1IsBatting ? "🏏" : "⚾";
     const t2Icon = t2IsBatting ? "🏏" : "⚾";
 
-    // If match status contains "won" or "drawn", it's over - hide icons
+    // Format scores to be cleaner (remove extra parentheses if they exist)
+    const cleanScore1 = t1Score.replace(/\((.*?)\)/, '$1').trim();
+    const cleanScore2 = t2Score.replace(/\((.*?)\)/, '$1').trim();
+
+    // End of match check
     if (status.includes("won") || status.includes("drawn") || status.includes("result")) {
-      return `${t1Name} (${t1Score}) vs ${t2Name} (${t2Score})`;
+      return `${t1Name} (${cleanScore1}) vs ${t2Name} (${cleanScore2})`;
     }
 
-    return `${t1Name} ${t1Icon} (${t1Score}) vs ${t2Name} ${t2Icon} (${t2Score})`;
+    // Smart UX: "Full Name [SHORT] Icon (Score)"
+    return `${t1Name} ${t1Icon} (${cleanScore1}) vs ${t2Name} ${t2Icon} (${cleanScore2})`;
   }
 }
