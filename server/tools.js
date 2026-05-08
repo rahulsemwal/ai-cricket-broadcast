@@ -188,8 +188,17 @@ export function formatMatchTitle(data, source = DEFAULT_CRICKET_API_SOURCE) {
       }
     }
 
-    const t1Icon = t1IsBatting ? "🏏" : "⚾";
-    const t2Icon = t2IsBatting ? "🏏" : "⚾";
+    // Smart Icon Assignment: Only show icons if someone is actually batting
+    let t1Icon = "";
+    let t2Icon = "";
+
+    if (t1IsBatting) {
+      t1Icon = "🏏 ";
+      t2Icon = "⚾ ";
+    } else if (t2IsBatting) {
+      t2Icon = "🏏 ";
+      t1Icon = "⚾ ";
+    }
 
     // Format scores to be cleaner (remove extra parentheses if they exist)
     const cleanScore1 = t1Score.replace(/\((.*?)\)/, '$1').trim();
