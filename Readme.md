@@ -1,87 +1,139 @@
-# 🏏 AI-Vision Cricket Broadcast / live commentary Engine
+# 🏏 AI-Vision Cricket Broadcast & Live Commentary Engine
 
-![Hackathon Winner](https://img.shields.io/badge/Status-Hackathon_Winner-gold?style=for-the-badge&logo=trophy) ![Gemini API](https://img.shields.io/badge/Powered_by-Gemini_2.5_Flash-blue?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Active_Development-green?style=for-the-badge) ![Gemini API](https://img.shields.io/badge/Powered_by-Gemini_2.5_Flash-blue?style=for-the-badge)
 
-## 🎯 The Problem Statement
-> *"How about generating live commentary for a match when you point your camera towards it? Can that live commentary be related to more than one device over a call (Bluetooth or anything else) for people who are not sitting in the match but are on a video call?"*
+🚀 **Live Demo:** [https://ai-cricket-broadcast.onrender.com/](https://ai-cricket-broadcast.onrender.com/)
 
-## 💡 Our Solution
-We built a highly scalable, multi-device **Generative AI Broadcasting System**. 
-
-Instead of locking the broadcast to a single local Bluetooth connection, we built a **Web-Native Audio Broadcasting Server**. As live match events occur (either via camera vision pipelines or real-time APIs), the data is piped into **Google Gemini 2.5 Flash**, which acts as a dynamic triad of AI personalities:
-1. **The Excitable Commentator** (Play-by-play audio)
-2. **The Analyst** (Momentum and pressure insights)
-3. **The Captain** (Tactical decision making)
-
-This data is instantly broadcasted to a modern web frontend. **Anyone, anywhere on any device** (mobile, tablet, laptop, or over a video call screen-share) can connect to the web interface and hear the **Live Text-to-Speech Commentary** in perfect sync.
+## 🎯 The Vision
+We built a highly scalable, multi-device **Generative AI Broadcasting System**. It transforms raw cricket match data into a professional broadcasting experience with live commentary, tactical insights, and momentum analysis, all powered by Google's Gemini AI.
 
 ---
 
 ## ✨ Key Features
 
 - **🗣️ Live Multi-Device Audio**: Uses the Browser Speech Synthesis API. Any device opening the web app instantly becomes a synced broadcast speaker.
-- **🧠 Tri-Agent AI Architecture (Chained)**: Three distinct Gemini prompts are chained sequentially. The Analyst evaluates the score, and the Captain reads the Analyst's output to make highly contextual tactical decisions.
-- **⚡ Smart API Caching**: To prevent rate limits and ensure lightning-fast responses, the backend caches AI analysis and only re-prompts Gemini when actual match events change.
-- **🛡️ Bulletproof Fallbacks**: If live match data fails or APIs hit limits, the system seamlessly degrades to a dynamic mock-match simulation, ensuring the broadcast *never* goes down.
-- **🎨 Beautiful UI**: A clean, responsive grid layout that highlights the most critical match data and actionable alerts.
+- **🧠 Flexible Agent Architecture**: Toggle between **Single-Agent** (cost-efficient) and **Multi-Agent** (high-quality) processing modes.
+- **🔌 Hybrid Data Sources**: Seamlessly switch between real-time **CricAPI** data and a sophisticated **Dynamic Mock Simulator** for development and testing.
+- **⚡ Smart API Caching**: Prevents redundant AI calls by hashing match states and only re-processing when the score or event changes.
+- **🛡️ Resilience-First Design**: Built-in failover mechanisms ensure the broadcast remains live even if external APIs encounter rate limits or outages.
 
-## 🤖 AI Agent Implementation (High-Level)
+---
 
-The core intelligence of the application runs on a custom **Agentic Workflow** built around Google's Gemini API. When live data is ingested, the system orchestrates multiple AI tasks to simulate a full broadcasting studio:
+## 🏗️ Technical Architecture
 
-1. **The Ingestion Layer (`tools.js`)**: Fetches real-time JSON match data using CricAPI. If the API fails or rate-limits are hit, it automatically falls back to a **Dynamic Mock Generator** (`_mockMatchdata`). This generator uses a `ballIndex` to mathematically simulate live ball-by-ball events (progressing runs, wickets, and overs) to keep the broadcast completely alive.
-2. **The Tri-Agent Processing (`agent.js`)**:
-   - **🎙️ Play-by-Play Agent**: Instructed to act as an energetic cricket commentator, translating the raw JSON score into an exciting one-liner audio script.
-   - **📊 Analyst Agent**: Evaluates the match data to determine momentum and pressure shifts.
-   - **🧠 Captain Agent**: Takes the **Analyst's momentum report** as direct input alongside the raw match data to output a highly-contextual tactical "next-move" decision.
-   - **🚨 Actionable Alerts**: A deterministic rule engine that parses the Captain and Analyst outputs to flash UI alerts (e.g., if the Analyst detects "high" pressure or Captain says "change").
-3. **Smart Rate-Limit Guardrails**: The `agent.js` file implements a strict memory cache (`cachedResponse` and `lastDataString`). It hashes the incoming JSON match state and *only* triggers the 3 Gemini API calls if the score has genuinely changed.
-4. **Resilience & Fallbacks**: The entire agent logic is wrapped in a massive `try-catch` block. If Gemini API quotas are exhausted (429 errors), the agent instantly serves the last known `cachedResponse`, or defaults to a tense fallback script. The frontend *never* receives a 500 error.
+The system is designed around a decoupled workflow involving an **Ingestion Layer**, an **Orchestration Layer**, and an **Intelligence Layer**.
 
-## 🛠️ Tech Stack
-* **Backend:** Node.js, Express.js
-* **AI Model:** Google Gemini 2.5 Flash
-* **Live Data:** CricAPI (with dynamic mock failovers)
-* **Frontend:** Vanilla HTML/JS/CSS (No heavy frameworks for maximum speed)
-* **Audio:** Native Browser `SpeechSynthesisUtterance` API
+### 1. Ingestion Layer (`tools.js`)
+Responsible for sourcing and normalizing match data.
+- **Live Mode**: Fetches real-time data from CricAPI.
+- **Mock Mode**: A stateful simulator that progresses match events (runs, wickets, overs) using a global sequence, ensuring a continuous data stream for the agents.
+- **Formatters**: Utilities to clean team names and generate consistent match titles with dynamic batting/bowling icons.
+
+### 2. Orchestration Layer (`agent.js`)
+The "brain" of the operation that manages how data is processed by the AI.
+- **Prompt Management**: Dynamically loads and injects data into specialized prompt templates (`commentary.txt`, `momentum.txt`, `decision.txt`).
+- **Caching Logic**: Implements a comparison-based cache to minimize Gemini API usage.
+
+### 3. Intelligence Layer (Gemini AI)
+Depending on the configuration, the system employs one of two workflows:
+
+#### **A. Multi-Agent Mode (High-Precision)**
+Executes three parallel/chained AI calls for a deep broadcasting experience:
+1.  **The Commentator**: Generates an energetic, play-by-play audio script.
+2.  **The Analyst**: Evaluates scorecards to determine momentum and pressure shifts.
+3.  **The Captain**: Consumes the Analyst's report to provide highly contextual tactical decisions (e.g., bowling changes, field placements).
+
+#### **B. Single-Agent Mode (Efficient)**
+A single, complex prompt that instructs Gemini to return a structured JSON response containing commentary, insights, and decisions in one round-trip.
+
+---
+
+## ⚙️ Environment Configuration
+
+The application is highly configurable via the `server/.env` file. 
+
+> [!TIP]
+> Please refer to the `server/.env.example` file and create your own `.env` file in the same directory with your specific API keys and configuration preferences.
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `GEMINI_API_KEY` | Your Google Gemini API key. | `Required` |
+| `CRIC_API_KEY` | Your CricAPI key for live scores. | `Required` |
+| `USE_GEMINI` | `true` to use real AI; `false` to use mock AI responses. | `true` |
+| `USE_LIVE_MATCH_DATA` | `true` for real API data; `false` for simulated mock data. | `true` |
+| `MULTI_AGENT_MODE` | `true` for 3-call Tri-Agent mode; `false` for 1-call Single-Agent mode. | `true` |
+| `PORT` | The port the Express server runs on. | `3000` |
 
 ---
 
 ## 🚀 Setup & Installation
 
 ### 1. Prerequisites
-- Node.js (v18+)
-- A Google Gemini API Key
-- A CricAPI Key
+- **Node.js** (v18 or higher)
+- **API Keys**: Obtain keys from [Google AI Studio](https://aistudio.google.com/) and [CricAPI](https://www.cricapi.com/).
 
-### 2. Environment Setup
-Navigate to the `server/` directory and ensure your `.env` file looks like this:
+### 2. Installation
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd ai-cricket-broadcast/server
+
+# Install dependencies
+npm install
+```
+
+### 3. Configure Environment
+Create a `.env` file in the `server/` directory:
 ```env
-GEMINI_API_KEY=your_gemini_api_key
+GEMINI_API_KEY=your_gemini_key
 CRIC_API_KEY=your_cricapi_key
 PORT=3000
+USE_GEMINI=true
+USE_LIVE_MATCH_DATA=true
+MULTI_AGENT_MODE=true
 ```
 
-### 3. Start the Server
+### 4. Run the Application
 ```bash
-cd server
-npm install
-npm start
+npm run dev
 ```
-
-### 4. Open the Web App
-The Node server automatically hosts the frontend interface! 
-Simply open your web browser and navigate to:
-👉 **http://localhost:3000**
-
-*(Note: Modern browsers block autoplaying audio. Be sure to click the **"Start Broadcast Audio"** button on the webpage to hear the live commentary!)*
+Open **http://localhost:3000** in your browser.
 
 ---
 
-## 🔧 Troubleshooting & Hacks
+## 🐳 Docker Setup
 
-**Port 3000 already in use?**
-If you need to quickly kill a hung Node server on Mac/Linux, run:
+If you prefer to run the application in a containerized environment, use the provided Dockerfile.
+
+### 1. Build the Image
 ```bash
-kill -9 $(lsof -t -i:3000)
+docker build -t ai-cricket-broadcast .
 ```
+
+### 2. Run the Container
+Make sure to pass your environment variables using the `-e` flag or an `--env-file`.
+```bash
+docker run -p 3000:3000 \
+  -e GEMINI_API_KEY=your_key \
+  -e CRIC_API_KEY=your_key \
+  -e USE_LIVE_MATCH_DATA=true \
+  ai-cricket-broadcast
+```
+
+---
+
+## 🛠️ Tooling & Utilities
+
+| Tool | Functionality |
+| :--- | :--- |
+| `getMatchData()` | Orchestrates live vs. mock data fetching with automatic failover. |
+| `generateAlert()` | Deterministically flags high-pressure moments for UI emphasis. |
+| `callGemini()` | A robust wrapper for Gemini API interactions with error handling. |
+| `loadPrompt()` | Utility to read and hydrate prompt templates from the `/prompts` folder. |
+
+---
+
+## 🛡️ Troubleshooting
+- **API Limits**: If you hit Gemini rate limits, the system will fallback to the last cached response.
+- **Audio Autoplay**: Modern browsers block audio. You **must** click the "Start Broadcast" button on the UI to enable the AI commentary.
+- **Port Conflict**: If port 3000 is busy, use `kill -9 $(lsof -t -i:3000)` on Mac/Linux to clear it.
