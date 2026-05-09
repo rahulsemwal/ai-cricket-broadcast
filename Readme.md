@@ -70,7 +70,7 @@ The application is highly configurable via the `server/.env` file.
 
 ### 1. Prerequisites
 - **Node.js** (v18 or higher)
-- **API Keys**: Obtain keys from [Google AI Studio](https://aistudio.google.com/) and [CricAPI](https://www.cricapi.com/).
+- **API Keys**: Obtain keys from [Google AI Studio](https://aistudio.google.com/) and [CricAPI/CricketData.org](https://www.CricketData.org/).
 
 ### 2. Installation
 ```bash
